@@ -1,0 +1,54 @@
+(* sources.mlb
+ *
+ * COPYRIGHT (c) 2020 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *
+ * MLB file for compiling with MLton
+ *)
+
+local
+
+  $(SML_LIB)/basis/basis.mlb
+  $(SML_LIB)/basis/sml-nj.mlb
+  $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
+  $(SML_LIB)/smlnj-lib/Controls/controls-lib.mlb
+  $(SML_LIB)/smlnj-lib/JSON/json-lib.mlb
+  $(SML_LIB)/mllpt-lib/mllpt-lib.mlb
+
+  ../mlton/sources.mlb
+
+  ctl.sml
+  ann "allowVectorExps true" in
+    ansi-text.sml
+  end
+  mlton-error.sml
+  float-lit.sml
+  integer-lit.sml
+  word-lit.sml
+  literal.sml
+  phase-timer.sml
+  log.sml
+  stamp.sml
+  label.sml
+  stats.sml
+  options.sml
+  timers.sml
+
+in
+
+  structure ANSIText
+  structure Ctl
+  structure Error
+  structure FloatLit
+  structure IntegerLit
+  structure Label
+  structure Literal
+  structure Log
+  structure Options
+  structure PhaseTimer
+  structure Stamp
+  structure Stats
+  structure Timers
+  structure WordLit
+
+end

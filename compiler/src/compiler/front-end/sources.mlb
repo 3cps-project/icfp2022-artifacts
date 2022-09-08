@@ -1,0 +1,120 @@
+(* sources.mlb
+ *
+ * COPYRIGHT (c) 2020 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *
+ * MLB file for compiling with MLton
+ *)
+
+local
+
+  $(SML_LIB)/basis/basis.mlb
+  $(SML_LIB)/basis/sml-nj.mlb
+  $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
+  $(SML_LIB)/smlnj-lib/Controls/controls-lib.mlb
+  $(SML_LIB)/smlnj-lib/PP/pp-lib.mlb
+  $(SML_LIB)/mllpt-lib/ml-lpt-lib.mlb
+
+  ../mlton/sources.mlb
+  ../common/sources.mlb
+
+  parser/basis-names.sml
+  parser/parse-tree.sml
+  parser/minml.grm.sml
+  parser/minml.lex.sml
+  parser/print-pt.sml
+  parser/parser.sml
+
+  bind-tree/identifier-fn.sml
+  bind-tree/bind-tree.sml
+  bind-tree/bind-tree-util.sml
+
+  binding/basis-binds.sml
+  binding/binding-env.sml
+  binding/binding.sml
+
+  ast/type-class.sml
+  ast/types.sml
+  ast/ty-var.sml
+  ast/ty-con.sml
+  ast/meta-var.sml
+  ann "allowExtendedTextConsts true" in
+    ast/type-util.sml
+  end
+  ast/data-con.sml
+  ast/var.sml
+  ast/strid.sml
+  ast/ast.sml
+  ast/ast-util.sml
+  ast/exn.sml
+  ast/print-ast.sml
+
+  env/env-rep.sml
+  env/struct-env.sml
+  env/prim-ty.sml
+  env/prim-exn.sml
+  env/prim-var.sml
+  env/basis.sml
+  env/env.sml
+
+  typechecker/unify.sml
+  typechecker/type-error.sml
+  typechecker/overloads.sml
+  typechecker/context.sml
+  typechecker/pattern.sml
+  typechecker/chk-lit.sml
+  typechecker/chk-qual-id.sml
+  typechecker/chk-type.sml
+  typechecker/chk-pat.sml
+  typechecker/chk-exp.sml
+  typechecker/typechecker.sml
+
+  match-comp/backtrack-mc.sml
+  match-comp/match-comp.sml
+
+  simple-ast/simple-types.sml
+  simple-ast/simple-ty-var.sml
+  simple-ast/simple-ty-con.sml
+  simple-ast/simple-type-util.sml
+  simple-ast/simple-var.sml
+  simple-ast/simple-data-con.sml
+  simple-ast/simple-exn.sml
+  simple-ast/simple-ast.sml
+  simple-ast/simple-ast-util.sml
+  simple-ast/print-simple-ast.sml
+  simple-ast/census.sml
+  simple-ast/check-simple-ast.sml
+
+  simplifier/prim-env.sml
+  simplifier/simplify-ty.sml
+  simplifier/simple-prim.sml
+  simplifier/equality.sml
+  simplifier/simplify.sml
+
+  simple-opt/simple-opt-stats.sml
+  simple-opt/simple-opt-util.sml
+  simple-opt/beta.sml
+  simple-opt/contract.sml
+  simple-opt/contract-types.sml
+  simple-opt/inline.sml
+  simple-opt/reassoc.sml
+  simple-opt/uncurry.sml
+  simple-opt/simple-opt.sml
+
+  front-end.sml
+
+in
+
+  structure FrontEnd
+
+  structure SimpleAST
+  structure SimpleASTUtil
+  structure SimpleDataCon
+  structure SimplePrim
+  structure SimpleTyCon
+  structure SimpleTypes
+  structure SimpleTypeUtil
+  structure SimpleTyVar
+  structure SimpleVar
+
+end

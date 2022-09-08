@@ -1,0 +1,98 @@
+# Makefile
+#
+# A Makefile for when we are using mlton to build the 3-CPS compiler
+#
+# @configure_input@
+#
+
+#### Start of system configuration section. ####
+
+#
+# directories for the install target
+#
+PREFIX =		@prefix@
+INSTALL_BINDIR =	$(PREFIX)/bin
+INSTALL_LIBDIR =	$(PREFIX)/lib
+INSTALL_INCDIR =	$(PREFIX)/include
+
+#
+# directories for the local-install target
+#
+SRCDIR =	@ROOTDIR@/src
+LIBDIR =	@LIBDIR@
+BINDIR =	@BINDIR@
+
+#
+# configuration support
+#
+CONFIGDIR =	@ROOTDIR@/config
+
+INSTALL =	@INSTALL@
+SHELL =		@SHELL@
+@SET_MAKE@
+
+#
+# MLton build tools
+#
+MLTON =		@MLTON@
+MLTON_FLAGS =	-const 'Exn.keepHistory true'
+
+#### End of system configuration section. ####
+
+PROGRAM =		smlc
+ROOT_MLB =		driver/sources.mlb
+
+#
+# generated parser files
+#
+PARSER_FILES =		front-end/parser/minml.grm.sml \
+			front-end/parser/minml.lex.sml \
+			mlb/mlb.grm.sml \
+			mlb/mlb.lex.sml
+
+SRC_FILES =		$(wildcard */sources.mlb) $(wildcard */*sml) $(wildcard */*/*sml)
+
+.PHONY:		local-install
+local-install:	$(PROGRAM)
+	cp -p $(PROGRAM) $(BINDIR)
+
+.PHONY:		install
+install:	$(HEAP_IMAGE)
+	cp -p $(PROGRAM) $(INSTALL_BINDIR)
+
+.PHONY:		build
+build:		$(PROGRAM)
+
+$(PROGRAM): $(ROOT_MLB) $(SRC_FILES) $(PARSER_FILES)
+	$(MLTON) $(MLTON_FLAGS) -output $(PROGRAM) $(ROOT_MLB)
+
+.PHONY:		typecheck
+typecheck:
+	$(MLTON) -stop tc $(MLTON_FLAGS) $(ROOT_MLB)
+
+#
+# Generate the scanner and parser from specs
+#
+front-end/parser/minml.grm.sml: front-end/parser/minml.grm
+	cd front-end/parser; ml-antlr minml.grm
+
+front-end/parser/minml.lex.sml: front-end/parser/minml.lex
+	cd front-end/parser; ml-ulex --strict-sml minml.lex
+
+mlb/mlb.grm.sml: mlb/mlb.grm
+	cd mlb; ml-antlr mlb.grm
+
+mlb/mlb.lex.sml: mlb/mlb.lex
+	cd mlb; ml-ulex --strict-sml mlb.lex
+
+#################### Cleanup ####################
+
+CLEAN_SUBDIRS =
+
+CLEAN_FILES +=		$(PROGRAM)
+
+DISTCLEAN_FILES +=	Makefile
+
+DEVCLEAN_FILES =
+
+include @MKDIR@/clean-rules.gmk

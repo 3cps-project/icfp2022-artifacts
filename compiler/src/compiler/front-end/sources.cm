@@ -1,0 +1,117 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2019 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *)
+
+Library
+
+  structure FrontEnd
+
+  structure SimpleAST
+  structure SimpleASTUtil
+  structure SimpleDataCon
+  structure SimpleFreeVars
+  structure SimplePrim
+  structure SimpleTyCon
+  structure SimpleTypes
+  structure SimpleTypeUtil
+  structure SimpleTyVar
+  structure SimpleVar
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+  $/controls-lib.cm
+  $/pp-lib.cm
+  $/ml-lpt-lib.cm
+
+  ../common/sources.cm
+  ../primitives/sources.cm
+
+  front-end.sml
+
+  ast/ast.sml
+  ast/ast-util.sml
+  ast/data-con.sml
+  ast/exn.sml
+  ast/meta-var.sml
+  ast/print-ast.sml
+  ast/strid.sml
+  ast/ty-con.sml
+  ast/ty-var.sml
+  ast/type-class.sml
+  ast/type-util.sml
+  ast/types.sml
+  ast/var.sml
+
+  bind-tree/bind-tree.sml
+  bind-tree/bind-tree-util.sml
+  bind-tree/identifier-fn.sml
+
+  binding/basis-binds.sml
+  binding/binding-env.sml
+  binding/binding.sml
+
+  env/basis.sml
+  env/env.sml
+  env/env-rep.sml
+  env/prim-exn.sml
+  env/prim-var.sml
+  env/prim-ty.sml
+  env/struct-env.sml
+
+  match-comp/backtrack-mc.sml
+  match-comp/match-comp.sml
+
+  parser/minml.lex : ml-ulex
+  parser/minml.grm : ml-antlr
+
+  parser/basis-names.sml
+  parser/parse-tree.sml
+  parser/print-pt.sml
+  parser/parser.sml
+
+  simple-ast/census.sml
+  simple-ast/check-simple-ast.sml
+  simple-ast/print-simple-ast.sml
+  simple-ast/simple-ast-util.sml
+  simple-ast/simple-ast.sml
+  simple-ast/simple-exn.sml
+  simple-ast/simple-data-con.sml
+  simple-ast/simple-free-vars.sml
+  simple-ast/simple-ty-con.sml
+  simple-ast/simple-ty-var.sml
+  simple-ast/simple-types.sml
+  simple-ast/simple-type-util.sml
+  simple-ast/simple-var.sml
+
+  simple-opt/beta.sml
+  simple-opt/contract.sml
+  simple-opt/contract-types.sml
+  simple-opt/fix-fix.sml
+  simple-opt/inline.sml
+  simple-opt/reassoc.sml
+  simple-opt/simple-opt.sml
+  simple-opt/simple-opt-stats.sml
+  simple-opt/simple-opt-util.sml
+  simple-opt/uncurry.sml
+
+  simplifier/equality.sml
+  simplifier/prim-env.sml
+  simplifier/simple-prim.sml
+  simplifier/simplify.sml
+  simplifier/simplify-ty.sml
+
+  typechecker/chk-exp.sml
+  typechecker/chk-lit.sml
+  typechecker/chk-pat.sml
+  typechecker/chk-qual-id.sml
+  typechecker/chk-type.sml
+  typechecker/context.sml
+  typechecker/overloads.sml
+  typechecker/pattern.sml
+  typechecker/typechecker.sml
+  typechecker/type-error.sml
+  typechecker/unify.sml

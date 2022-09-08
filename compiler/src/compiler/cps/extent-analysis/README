@@ -1,0 +1,195 @@
+
+First, read the paper. I'm going to describe what I do differently
+here, as well as how I compute certain things.
+
+In the paper, we compute a "state space", which contains a set of
+configurations, a store, a proxy store, and a "legal annotations" set.
+The first thing we do is separate the computation of the set of
+configurations, store, and proxy store from determining legal
+annotations; this is because there may be many types of annotations we
+want to compute all using the state space. Additionally, we may want
+to do some dynamic programming / precomputation of certain values
+before determining annotations.
+
+First, I'll describe the differences between the paper language and our IR:
+- All values must first be bound to variables; so function and
+  continuation calls only take user variables (functions/tuples/etc
+  must be bound to variables)The same is true for continuations; every
+  continuation must first be bound to a variable.
+
+  When we do this, we must redefine the "allocation locations"
+  possible, i.e. where a frame is allocated / extended.
+  I use "allocation locations" = user lambda labels + labels of
+  expressions after continuation bindings.  That is, every user lambda
+  allocates a frame, and after we bind continuations, we extend the
+  frame.  If we call one of the bound continuations, we pop back to
+  that point (the continuations themselves are saved on the stack
+  pre-extension).
+
+- - abstract tuples are a list of abstract addresses
+  - abstract data values (e.g. lists) are a tag along with an abstract
+     address (usually pointing to a tuple)
+
+- We track a continuation variable environment and continuation store.
+  This is necessary because of the local binding of continuations
+  (I could probably abuse the proxy mechanism to get around this, but
+  I thing that would not be correct)
+
+# State Space
+
+How do I compute the state space?
+At a high level, we track three worksets: one for abstract addresses,
+one for abstract proxy addresses, and one for new configurations. 
+It turns out we don't need one for abstract continuation addresses.
+
+Note: in the following, "address" and "value" will refer to
+- abstract address and abstract value
+- abstract continuation address and abstract continuation value
+- abstract proxy address and abstract proxy value
+
+Specifically, the worksets are pairs (a, d) where d is some "change" to a.
+
+Additionally, we have an auxillary map from configurations to the
+addresses they use.
+
+We start with the initial stores and configuration, where the only
+non-empty workset is the configuration one.
+
+There are two main kinds of updates:
+- new configurations
+- updates to addresses
+
+New Configurations
+
+   To do a new configuration, we transition it according to the
+   current stores. We obtain
+   - address, value pairs for bindings done in the transition
+   - configurations from the step
+   We also figure out what addresses that configuration uses
+   
+   We diff the address, value pairs by what is currently in the store,
+   and update the store(s) by joining it (them) with the updates.  
+   The diffs are inserted into the worksets.
+   
+   If any of the configurations from the step are new, we add those to
+   the configuration workset.
+   
+   Additionally, for the configuration that we just handled we update the
+   auxillary mapping for the addresses to include that configuration.
+
+Updates from worksets
+
+   To handle an update from the worksets, we take the address, value
+   update and look up all known configurations that use that address.
+   We then transition each of those configurations again with the
+   update and the current store, using the update value where we
+   use the address. 
+   (Note: there are some edge cases where we use the address in
+   multiple places; we track this and use the update for the correct
+   place, and use the store's value for the address in the other
+   places)
+
+   This gives us possible new configurations (e.g. the update caused a
+   function previously un-called to flow to a call site, so now we
+   transition into it), and more updates. We add these to the worksets
+   as in the previous case.
+
+We handle new configurations and updates until there are none left.
+
+Note: we can do the "math" method of computing the state space just by
+passing configurations into the "new configuration" function and
+joining the results until no more changes are discovered.
+In fact, this function exists in the code and is used to test the
+correctness of my fancy fast algorithm.
+
+For the actual algorithm, I handle all outstanding proxy updates
+first, then normal address updates, then new configurations. This
+seems to give the fastest runtime.
+
+To handle "unknown" values or continuations/proxies (representing
+calling code outside the current compilation context) we obtain the
+list of values passed to the outside, and any closures from those we
+call giving "unknown" for arguments and continuation arguments. This
+is how we can tell
+- which call sites call "unknown" functions coming from outside our
+  compilation context
+- which of the functions in the current compilation "escape to the
+  unknown"
+In both cases, we can't optimize (web-dependent properties for) those
+call sites and lambdas.
+
+
+# Stack extent / Extent crtieria
+
+We would like to tell, for each allocation (binding or value), if that
+allocation's lifetime exceeds the frames allocation points that
+lexically bind them. Note that this is broader then stack extent,
+which only looks at the innermost frame. We want to do this because if
+we can tell that some data structures are "only used locally", we can
+allocate those objects in a special area in the heap and reclaim that
+space upon pop. But this is a lot more complicated, so let's just talk
+about stack extent.
+
+First, we will need some auxillary information about the CPS, which can be determined syntactically:
+- for each call/continuation call site, what are the "local frames" that are popped? 
+
+  For calls:
+  That is, we can tell from the continuation variables passed to the
+  call whether those variables are bound in the body of the user
+  lambda or not. If they all are not (i.e. they are parameters), we
+  have a tail call. 
+  And even if they are bound in the body of the user lambda, they
+  might be defined way before the call site and so we may need to
+  still pop some "extension" of the user lambda's frame that we pushed
+  for the locally defined continuations.
+  We take the intersection of these frames for all of the continuation
+  (variable) arguments.
+
+  For continuation calls:
+  Do the same, but the intersection just has one thing.
+
+- for each call site, what are the "popped past frames"?
+  That is, when we do a long-jump style return due to calling a very
+  old continuation we "skip past" some call sites that have been
+  executing (see: proxies). When we do this, each of the call sites we
+  "pop past" have some frames that need to be popped, which can be
+  syntactically determined: the frame for the innermost user lambda of
+  the call and the frame (extensions) for each of the continuations
+  bound in between.
+  Basically, all of these are killed in the long jump.
+
+To compute the stack extent criteria, we go over each possible "pop"
+configuration in the state space, which are calls and continuation
+calls. For each of these, we can compute the popped frames using the proxies:
+- for calls, we take the "local frames" popped due to the tail calls,
+  as well as the "popped past frames" for each proxy we skipped
+  through for the pop.
+- for continuation calls, obtain the "local frames" popped due to the
+  call as well as the "popped past frames" for each proxy we skipped
+  through for the pop.
+
+For each of these frames, get the allocations that we want to
+stack-allocate on those frames. Any of those that are still live can't
+be stack-allocated.
+
+Now, to handle the more general stack criteria, just expand the focus
+of each frame from each allocation we would like to put on that frame
+for stack allocation to every allocation that the frame lexically
+contains.
+TODO: explain tail calls here, since they make bad things happen
+
+
+# Register extent / Uniqueness criteria
+
+... Is easy. Just go over every configuration, and figure out the
+allocations (recall: bindings and values) that it does. If there is
+already one still live, then the thing trying to be allocated does not
+have register extent.
+
+# Continuation ordering
+
+TODO
+
+# Other...
+
+TODO

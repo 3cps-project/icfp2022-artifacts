@@ -1,0 +1,32 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2021 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *
+ * An implementation of a subset of the MLB specification language.
+ * See README.md for details.
+ *)
+
+Library
+
+  signature MLB_ERROR
+
+  structure MLBParser
+  structure MLBParseTree
+
+  functor MLBPathMapFn
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+  $/ml-lpt-lib.cm
+
+  ../common/sources.cm
+
+  mlb.lex : ml-ulex
+  mlb.grm : ml-antlr
+  mlb-error.sig
+  mlb-parse-tree.sml
+  mlb-parser.sml
+  mlb-path-map-fn.sml

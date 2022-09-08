@@ -1,0 +1,30 @@
+(* sources.mlb
+ *
+ * COPYRIGHT (c) 2021 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *)
+
+local
+
+  $(SML_LIB)/basis/basis.mlb
+  $(SML_LIB)/basis/sml-nj.mlb
+
+  const-arith/signed-const-arith-sig.sml
+  const-arith/unsigned-const-arith-sig.sml
+  const-arith/bitwise-const-arith-sig.sml
+  const-arith/const-arith-sig.sml
+  const-arith/signed-trapping-arith.sml
+  const-arith/unsigned-wrapping-arith.sml
+  const-arith/bitwise-const-arith.sml
+  const-arith/const-arith-glue-fn.sml
+
+  const-arith.sml
+  prim-op.sml
+  prim-eval.sml
+
+in
+
+  structure PrimEval
+  structure PrimOp
+
+end

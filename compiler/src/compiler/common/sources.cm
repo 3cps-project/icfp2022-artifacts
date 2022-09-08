@@ -1,0 +1,47 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2019 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *)
+
+Library
+
+  structure ANSIText
+  structure Ctl
+  structure Error
+  structure FloatLit
+  structure IntegerLit
+  structure Label
+  structure Literal
+  structure Log
+  structure Options
+  structure PhaseTimer
+  structure Stamp
+  structure Stats
+  structure Target
+  structure Timers
+  structure WordLit
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+  $/controls-lib.cm
+  $/json-lib.cm
+  $/ml-lpt-lib.cm
+
+  ansi-text.sml
+  ctl.sml
+  error.sml
+  float-lit.sml
+  integer-lit.sml
+  label.sml
+  literal.sml
+  log.sml
+  options.sml
+  phase-timer.sml
+  stamp.sml
+  stats.sml
+  target.sml
+  timers.sml
+  word-lit.sml

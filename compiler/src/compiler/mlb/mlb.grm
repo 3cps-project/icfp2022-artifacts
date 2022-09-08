@@ -1,0 +1,99 @@
+(* mlb.grm
+ *
+ * COPYRIGHT (c) 2021 John Reppy (http://www.cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *
+ * ML Antlr specification for the MLB language.
+ *)
+
+%name MLB;
+
+%tokens
+    : KW_and            ("and")
+    | KW_ann            ("ann")
+    | KW_bas            ("bas")
+    | KW_basis          ("basis")
+    | KW_end            ("end")
+    | KW_functor        ("functor")
+    | KW_in             ("in")
+    | KW_let            ("let")
+    | KW_local          ("local")
+    | KW_open           ("open")
+    | KW_signature      ("signature")
+    | KW_structure      ("structure")
+    | EQ                ("=")
+    | SEMI              (";")
+    | STRING of string
+    | PATH of string
+    | NAME of Atom.atom
+    ;
+
+%defs (
+  structure PT = MLBParseTree
+
+(* apply a mark constructor to a span and a tree *)
+  fun mark cons (span : AntlrStreamPos.span, tr) = cons{span = span, tree = tr}
+
+  val markBasDec = mark PT.MarkBasDec
+);
+
+MLB
+        : BasDecs
+        ;
+
+BasDecs
+        : BasDec (";"? BasDec)*
+		=> (case SR
+		     of [] => BasDec
+		      | dcls => markBasDec(FULL_SPAN, PT.SeqBasDec(BasDec::SR))
+		    (* end case *))
+        ;
+
+
+BasDec
+        : "basis" BasBind
+                => (markBasDec(FULL_SPAN, PT.BasisBasDec BasBind))
+        | "local" BasDecs "in" BasDecs "end"
+                => (markBasDec(FULL_SPAN, PT.LocalBasDec (BasDecs1, BasDecs2)))
+        | "open" Id+
+                => (markBasDec(FULL_SPAN, PT.OpenBasDec Id))
+        | "signature" ModBind
+                => (markBasDec(FULL_SPAN, PT.SignatureBasDec ModBind))
+        | "structure" ModBind
+                => (markBasDec(FULL_SPAN, PT.StructureBasDec ModBind))
+        | "functor" ModBind
+                => (markBasDec(FULL_SPAN, PT.FunctorBasDec ModBind))
+        | PATH
+                => (markBasDec(FULL_SPAN, PT.PathBasDec PATH))
+        | "ann" Annotation+ "in" BasDecs "end"
+                => (markBasDec(FULL_SPAN, PT.AnnBasDec (Annotation, BasDecs)))
+        ;
+
+BasExp
+        : "bas" BasDecs "end"
+                => (mark PT.MarkBasExp (FULL_SPAN, PT.DecBasExp BasDecs))
+        | "let" BasDecs "in" BasExp "end"
+                => (mark PT.MarkBasExp (FULL_SPAN, PT.LetBasExp(BasDecs, BasExp)))
+        | Id
+                => (mark PT.MarkBasExp (FULL_SPAN, PT.IdBasExp Id))
+        ;
+
+BasBind
+        : Id "=" BasExp ("and" Id "=" BasExp)*
+                => (mark PT.MarkBasBind (FULL_SPAN, PT.BindBasBind ((Id, BasExp) :: SR)))
+        ;
+
+ModBind
+        : Id "=" Id ("and" Id "=" Id)*
+                => (mark PT.MarkModBind (FULL_SPAN, PT.BindModBind ((Id1, Id2) :: SR)))
+        ;
+
+(* annotations are just strings, but we wrap them with a mark for error reporting *)
+Annotation
+	: STRING
+		=> ({span = FULL_SPAN, tree = STRING})
+	;
+
+Id	: NAME
+		=> ({span = FULL_SPAN, tree = NAME})
+	;

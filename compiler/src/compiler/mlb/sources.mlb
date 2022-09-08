@@ -1,0 +1,35 @@
+(* sources.mlb
+ *
+ * COPYRIGHT (c) 2021 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *
+ * MLB file for compiling the MLB Kit with MLton
+ *)
+
+local
+
+  $(SML_LIB)/basis/basis.mlb
+  $(SML_LIB)/basis/sml-nj.mlb
+  $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
+  $(SML_LIB)/mllpt-lib/ml-lpt-lib.mlb
+
+  ../mlton/sources.mlb
+  ../common/sources.mlb
+
+  mlb-parse-tree.sml
+  mlb.grm.sml
+  mlb.lex.sml
+  mlb-parser.sml
+  mlb-error.sig
+  mlb-path-map-fn.sml
+
+in
+
+  signature MLB_ERROR
+
+  structure MLBParser
+  structure MLBParseTree
+
+  functor MLBPathMapFn
+
+end

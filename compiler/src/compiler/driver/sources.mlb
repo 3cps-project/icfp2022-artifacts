@@ -1,0 +1,32 @@
+(* sources.mlb
+ *
+ * COPYRIGHT (c) 2020 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *
+ * MLB file for compiling with MLton
+ *)
+
+local
+
+  $(SML_LIB)/basis/basis.mlb
+  $(SML_LIB)/basis/sml-nj.mlb
+  $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
+  $(SML_LIB)/smlnj-lib/Controls/controls-lib.mlb
+  $(SML_LIB)/smlnj-lib/JSON/json-lib.mlb
+
+  ../mlton/sources.mlb
+  ../common/sources.mlb
+  ../mlb/sources.mlb
+  ../front-end/sources.mlb
+  ../cps/sources.mlb
+
+  dummy-backtrace.sml
+  json-output.sml
+  main.sml
+  mlton-main.sml
+
+in
+
+  structure Main
+
+end

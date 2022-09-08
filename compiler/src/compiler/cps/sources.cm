@@ -1,0 +1,179 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2019 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *)
+
+Library
+
+  structure Convert
+  structure CPS
+  structure CPSDataCon
+  structure CPSExn
+  structure CPSTypes
+  structure CPSTyCon
+  structure CPSUtil
+  structure CVar
+  structure Extent
+  structure ExtentAnalysis
+  structure LVar
+  structure PrintCPS
+
+  structure CPSInformation
+  structure CPSInterpreter
+  structure ThreeCPSInterpreter
+  structure CPSOpt
+  structure DetermineSyntacticCallWebs
+  structure CPSArgumentFlattening
+  structure CPSContraction
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+  $/controls-lib.cm
+  $/pp-lib.cm
+  $/hash-cons-lib.cm
+
+  ../common/sources.cm
+  ../primitives/sources.cm
+  ../front-end/sources.cm
+
+  convert/convert.sml
+  convert/convert-ty.sml
+  convert/var-analysis.sml
+
+  cps/cps-ctl.sml
+  cps/cps-data-con.sml
+  cps/cps-exn.sml
+  cps/cps-prim-ty.sml
+  cps/cps-ty-con.sml
+  cps/cps-ty-var.sml
+  cps/cps-type-util.sml
+  cps/cps-types.sml
+  cps/cps-util.sml
+  cps/cps.sml
+  cps/extent.sml
+  cps/print-cps.sml
+  cps/var.sml
+
+(* needs to be rewritten.  Also, it should be renamed to
+ * cps/check-cps.sml [JHR; 2021-02-16]
+ *)
+  (* typechecker/typechecker.sml *)
+
+  information/cps-invariants.sml
+  information/contains.sml
+  information/free-vars.sml
+  information/pop.sml
+  information/util.sml
+  information/frame.sml
+  information/proxy-info.sml
+  information/local-leq-cont-info.sml
+  information/information.sml
+
+  extent-analysis/state-space/structs/key.sig
+  extent-analysis/state-space/structs/hash-set-fn.sml
+  extent-analysis/state-space/structs/hash-cons.sml
+  extent-analysis/state-space/structs/array-list-fn.sml
+
+  extent-analysis/state-space/structs/addr.sig
+  extent-analysis/state-space/structs/zero-cfa-fn.sml
+  extent-analysis/state-space/structs/one-cfa-fn.sml
+  extent-analysis/state-space/structs/addr.sml
+  extent-analysis/state-space/structs/addr-k.sml
+  extent-analysis/state-space/structs/addr-proxy.sml
+
+  extent-analysis/state-space/structs/env.sig
+  extent-analysis/state-space/structs/env-fn.sml
+  extent-analysis/state-space/structs/env.sml
+  extent-analysis/state-space/structs/env-k.sml
+  extent-analysis/state-space/structs/env-type.sml
+
+  extent-analysis/state-space/structs/value.sig
+  extent-analysis/state-space/structs/value.sml
+  extent-analysis/state-space/structs/value-k.sml
+  extent-analysis/state-space/structs/proxy.sml
+  extent-analysis/state-space/structs/value-proxy.sml
+
+  extent-analysis/state-space/structs/store.sig
+  extent-analysis/state-space/structs/map-store-fn.sml
+  extent-analysis/state-space/structs/table-store-fn.sml
+  extent-analysis/state-space/structs/array-store-fn.sml
+  extent-analysis/state-space/structs/store-fn.sml
+  extent-analysis/state-space/structs/store.sml
+  extent-analysis/state-space/structs/store-k.sml
+  extent-analysis/state-space/structs/store-proxy.sml
+
+  extent-analysis/state-space/structs/config.sml
+
+  extent-analysis/state-space/transition-util.sml
+  extent-analysis/state-space/transition.sml
+  extent-analysis/state-space/state-space.sml
+
+  extent-analysis/analysis.sml
+  extent-analysis/dump-analysis.sml
+  extent-analysis/check-analysis.sml
+
+  extent-analysis/information/extent-set.sml
+  extent-analysis/information/call-webs.sml
+  extent-analysis/information/webs.sml
+  extent-analysis/information/information.sml
+  extent-analysis/information/util.sml
+
+  extent-analysis/dump/promotion.sml
+
+  extent-analysis/determine/binding.sml
+  extent-analysis/determine/live.sml
+  extent-analysis/determine/analysis-space.sml
+  extent-analysis/determine/determine.sig
+  extent-analysis/determine/extent-criteria.sml
+  extent-analysis/determine/uniqueness-criteria.sml
+  extent-analysis/determine/call-webs.sml
+  extent-analysis/determine/fun-flow.sml
+  extent-analysis/determine/tuple-flow.sml
+  extent-analysis/determine/data-flow.sml
+  extent-analysis/determine/unknown-flow.sml
+  extent-analysis/determine/relative-pop.sml
+  extent-analysis/determine/continuation-order.sml
+  (*
+  extent-analysis/determine/display-pass.sml
+  *)
+  extent-analysis/determine/environment-match.sml
+  extent-analysis/interpreter/addr.sml
+  extent-analysis/interpreter/binding.sml
+  extent-analysis/interpreter/env.sml
+  extent-analysis/interpreter/id.sml
+  extent-analysis/interpreter/interpreter.sml
+  extent-analysis/interpreter/frame.sml
+  extent-analysis/interpreter/live.sml
+  extent-analysis/interpreter/store.sml
+  extent-analysis/interpreter/store-k.sml
+  extent-analysis/interpreter/transition-util.sml
+  extent-analysis/interpreter/transition.sml
+  extent-analysis/interpreter/value.sml
+  extent-analysis/interpreter/value-k.sml
+  extent-analysis/interpreter/update-information.sml
+  extent-analysis/interpreter/comparison-results.sml
+
+  extent-analysis/3cps-interpreter/addr.sml
+  extent-analysis/3cps-interpreter/interpreter.sml
+  extent-analysis/3cps-interpreter/transition-util.sml
+  extent-analysis/3cps-interpreter/transition.sml
+  extent-analysis/3cps-interpreter/value.sml
+  extent-analysis/3cps-interpreter/value-k.sml
+  extent-analysis/3cps-interpreter/unbounded-array.sml
+
+  extent-analysis/syntactic/call-webs.sml
+  extent-analysis/syntactic/extent-analysis.sml
+  (*  extent-analysis/syntactic/var-analysis.sml *)
+
+  opt/argument-flattening.sml
+  opt/contraction.sml
+  opt/redundant-select.sml
+  opt/simple-arity-raising.sml
+  opt/simple-argument-elimination.sml
+  opt/propagate-moves.sml
+  opt/dump.sml
+  opt/cps-opt.sml
+

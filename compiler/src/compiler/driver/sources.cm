@@ -1,0 +1,36 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2019 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *)
+
+Library
+
+  structure Main
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+  $/controls-lib.cm
+  $/json-lib.cm
+
+  ../common/sources.cm
+  ../cps/sources.cm
+  ../front-end/sources.cm
+  ../mlb/sources.cm
+
+#if defined(BACK_TRACE)
+  $smlnj-tdp/plugins.cm
+  $smlnj-tdp/back-trace.cm
+  $smlnj-tdp/coverage.cm
+#endif
+
+  json-output.sml
+  main.sml
+
+#if defined(BACK_TRACE)
+  backtrace.sml
+#else
+  dummy-backtrace.sml
+#endif

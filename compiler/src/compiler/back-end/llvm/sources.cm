@@ -1,0 +1,38 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2016 Kavon Farvardin and John Reppy
+ * All rights reserved.
+ *
+ * Sample code
+ * CMSC 22600
+ * Autumn 2016
+ * University of Chicago
+ *)
+
+Library
+
+  structure LLVMBlock
+  structure LLVMFunc
+  structure LLVMGlobal
+  structure LLVMLabel
+  structure LLVMModule
+  structure LLVMReg
+  structure LLVMType
+  structure LLVMVar
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+
+  ../common/sources.cm
+
+  llvm-block.sml
+  llvm-func.sml
+  llvm-global.sml
+  llvm-module.sml
+  llvm-reg.sml
+  llvm-rep.sml
+  llvm-type.sml
+  llvm-var.sml
+  llvm-label.sml

@@ -1,0 +1,467 @@
+(* minml.grm
+ *
+ * COPYRIGHT (c) 2007 John Reppy (http://www.cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *
+ * Parser for MinML
+ *)
+
+%name MinML;
+
+%tokens
+    : KW_and            ("and")
+    | KW_andalso        ("andalso")
+    | KW_as             ("as")
+    | KW_case           ("case")
+    | KW_datatype       ("datatype")
+    | KW_div            ("div")
+    | KW_else           ("else")
+    | KW_end            ("end")
+    | KW_exception      ("exception")
+    | KW_fn             ("fn")
+    | KW_fun            ("fun")
+    | KW_handle         ("handle")
+    | KW_if             ("if")
+    | KW_in             ("in")
+    | KW_let            ("let")
+    | KW_local          ("local")
+    | KW_mod            ("mod")
+    | KW_of             ("of")
+    | KW_op             ("op")
+    | KW_orelse         ("orelse")
+    | KW_raise          ("raise")
+    | KW_sig            ("sig")
+    | KW_signature      ("signature")
+    | KW_struct         ("struct")
+    | KW_structure      ("structure")
+    | KW_then           ("then")
+    | KW_type           ("type")
+    | KW_where          ("where")
+    | KW_withtype       ("withtype")
+    | KW_val            ("val")
+    | LP                ("(")
+    | RP                (")")
+    | LB                ("[")
+    | RB                ("]")
+    | LTEQ              ("<=")
+    | LT                ("<")
+    | GTEQ              (">=")
+    | GT                (">")
+    | EQ                ("=")
+    | NEQ               ("<>")
+    | DCOLON            ("::")
+    | ASSIGN            (":=")
+    | AT                ("@")
+    | HAT               ("^")
+    | PLUS              ("+")
+    | MINUS             ("-")
+    | STAR              ("*")
+    | SLASH             ("/")
+    | TILDE             ("~")
+    | BANG              ("!")
+    | COMMA             (",")
+    | SEMI              (";")
+    | BAR               ("|")
+    | COLON             (":")
+    | ARROW             ("->")
+    | DARROW            ("=>")
+    | WILD              ("_")
+    | TYVAR of Atom.atom
+    | NAME of Atom.atom
+    | QNAME of Atom.atom list * Atom.atom
+    | INT of IntegerLit.t
+    | WORD of WordLit.t
+    | FLOAT of FloatLit.t
+    | CHAR of char
+    | STRING of string
+    ;
+
+%defs (
+  structure PT = ParseTree
+  structure Op = BasisNames
+
+(* apply a mark constructor to a span and a tree *)
+  fun mark cons (span, tr) = cons{span = span, tree = tr}
+
+(* specialize mark functions for common node types *)
+  val markDecl = mark PT.MarkDecl
+  val markTy = mark PT.MarkTy
+  val markExp = mark PT.MarkExp
+  val markMatch = mark PT.MarkMatch
+  fun markPat (_, p as PT.MarkPat _) = p
+    | markPat (sp, tr) = mark PT.MarkPat (sp, tr)
+
+(* construct a left-associative type application *)
+  fun mkTyApp ([arg], []) = arg
+    | mkTyApp (args, (span, id)::r) = let
+        fun mk (arg, []) = arg
+          | mk (arg, (span, id)::r) = mk (markTy(span, PT.NamedTy([arg], id)), r)
+        in
+          mk (markTy(span, PT.NamedTy(args, id)), r)
+        end
+
+(* construct conditional expressions for a list of expressions *)
+  fun mkCondExp con = let
+        fun mk (e, []) = e
+          | mk (e, e'::r) = mk (con(e, e'), r)
+        in
+          mk
+        end
+
+(* build an application for an infix binary operator *)
+  fun mkBinApp (e1, rator, e2) = PT.BinaryExp(e1, rator, e2)
+
+(* construct application expressions for left-associative binary operators *)
+  fun mkLBinExp (e, []) = e
+    | mkLBinExp (e, (id, e')::r) = mkLBinExp (mkBinApp(e, id, e'), r)
+
+(* construct application expressions for right-associative binary operators *)
+  fun mkRBinExp (e, []) = e
+    | mkRBinExp (e, [(id, e')]) = mkBinApp(e, id, e')
+    | mkRBinExp (e, (id, e')::r) = mkBinApp(e, id, mkRBinExp(e', r))
+
+(* turn a list of expressions into a tree of applications; remember that
+ * application associates to the left.
+ *)
+  fun mkApply (e, []) = e
+    | mkApply (e, e'::r) = mkApply (PT.ApplyExp(e, e'), r)
+
+(* construct application patterns for the right-associative `::` operator *)
+  fun mkConsPat (p : PT.pat, []) = p
+    | mkConsPat (p, [(sp, p')]) = mark PT.MarkPat (sp, PT.ConsPat(p, p'))
+    | mkConsPat (p, (sp, p')::r) = mark PT.MarkPat (sp, PT.ConsPat(p, mkConsPat(p', r)))
+);
+
+CompUnit
+        : (TopDecl ";"?)*
+                => ({span = FULL_SPAN, tree = SR})
+        ;
+
+TopDecl
+        : "structure" BoundId "=" StructExp
+                => (markDecl (FULL_SPAN, PT.StructDecl(BoundId, StructExp)))
+        | "local" (TopDecl ";"?)* "in" (TopDecl ";"?)* "end"
+                => (markDecl (FULL_SPAN, PT.LocalDecl(SR1, SR2)))
+        | "type" TyParams BoundId "=" Type
+                => (markDecl (FULL_SPAN, PT.TyDecl(TyParams, BoundId, Type)))
+        | "datatype" DataTypeDefn ("and" DataTypeDefn)*
+                => (markDecl (FULL_SPAN, PT.DataDecl(DataTypeDefn :: SR)))
+        | "exception" ConsDecl
+                => (markDecl (FULL_SPAN, PT.ExnDecl ConsDecl))
+        | ValueDecl
+                => (markDecl (FULL_SPAN, PT.ValueDecl ValueDecl))
+        ;
+
+StructExp
+        : UseId
+                => (mark PT.MarkStrExp (FULL_SPAN, PT.IdStrExp UseId))
+        | "struct" (TopDecl ";"?)* "end"
+                => (mark PT.MarkStrExp (FULL_SPAN, PT.DefStrExp SR))
+        ;
+
+TyParams
+        : (* empty *)                   => ([])
+        | TYVAR                         => ([TYVAR])
+        | "(" TYVAR ("," TYVAR)* ")"    => (TYVAR :: SR)
+        ;
+
+DataTypeDefn
+        : TyParams BoundId "=" ConsDecl ("|" ConsDecl)*
+                => ({span=FULL_SPAN, tree=(TyParams, BoundId, ConsDecl :: SR)})
+        ;
+
+Type
+        : TupleType ( "->" Type )?
+                => (case SR
+                     of SOME ty => markTy(FULL_SPAN, PT.FunTy(TupleType, ty))
+                      | _ => TupleType
+                    (* end case *))
+        ;
+
+TupleType
+        : TyApp ( "*" TyApp )*
+                => (if null SR
+                    then TyApp
+                    else markTy (FULL_SPAN, PT.TupleTy (TyApp :: SR)))
+        ;
+
+TyApp
+        : AtomicType (UseId => (UseId_SPAN, UseId))*
+                => (mkTyApp ([AtomicType], SR))
+        | "(" Type optTypes
+                => (markTy (FULL_SPAN, optTypes Type))
+        ;
+
+AtomicType
+        : TYVAR         => (markTy (FULL_SPAN, PT.VarTy TYVAR))
+        | UseId         => (markTy (FULL_SPAN, PT.NamedTy([], UseId)))
+        ;
+
+optTypes
+        : ")" (UseId => (UseId_SPAN, UseId))*
+                => (fn ty => mkTyApp ([ty], SR))
+        | ( "," Type)+ ")" (UseId => (UseId_SPAN, UseId))+
+                => (fn ty => mkTyApp(ty::SR1, SR2))
+        ;
+
+ConsDecl
+        : NAME ("of" Type)?
+                => (mark PT.MarkConDecl (FULL_SPAN, PT.ConDecl(NAME, SR)))
+        ;
+
+ValueDecl
+        : "val" Pat "=" Exp
+                => (mark PT.MarkVDecl (FULL_SPAN, PT.ValVDecl(Pat, Exp)))
+        | "fun" FunDef ("and" FunDef)*
+                => (mark PT.MarkVDecl (FULL_SPAN, PT.FunVDecl(FunDef :: SR)))
+        ;
+
+FunDef
+        : FunDefClauses
+                => (mark PT.MarkFunct (FULL_SPAN, PT.Funct FunDefClauses))
+        ;
+
+FunDefClauses
+        : %try FunName AtomicPat+ (":" Type)? "=" ClosedExp "|" FunDefClauses
+                => (let val clause = {
+                          span = (#1 FunName_SPAN, #2 ClosedExp_SPAN),
+                          tree = (FunName, AtomicPat, SR, ClosedExp)
+                        }
+                    in
+                      clause :: FunDefClauses
+                    end)
+        | %try FunName AtomicPat+ (":" Type)? "=" Exp
+                => ([{span = FULL_SPAN, tree = (FunName, AtomicPat, SR, Exp)}])
+        ;
+
+FunName
+        : NAME          => (NAME)
+        | OperatorId    => (OperatorId)
+        ;
+
+Exp
+        : AndalsoExp ( "handle" MatchRules )?
+                => (case SR
+                     of NONE => AndalsoExp
+                      | SOME rules => markExp (FULL_SPAN, PT.HandleExp(AndalsoExp, rules))
+                    (* end case *))
+        | "if" Exp "then" Exp "else" Exp
+                => (markExp (FULL_SPAN, PT.IfExp(Exp1, Exp2, Exp3)))
+        | "case" Exp "of" MatchRules
+                => (markExp (FULL_SPAN, PT.CaseExp(Exp, MatchRules)))
+        | "fn" MatchRules
+                => (markExp (FULL_SPAN, PT.FnExp MatchRules))
+        | "raise" Exp
+                => (markExp (FULL_SPAN, PT.RaiseExp Exp))
+        ;
+
+MatchRules
+        : %try Pat "=>" ClosedExp ("|" MatchRules)?
+                => (markMatch (FULL_SPAN, PT.CaseMatch(Pat, ClosedExp))
+                      :: Option.getOpt(SR, []))
+        | %try Pat "=>" Exp
+                => ([markMatch (FULL_SPAN, PT.CaseMatch(Pat, Exp))])
+        ;
+
+ClosedExp
+        : AndalsoExp
+                => (AndalsoExp)
+        | "if" Exp "then" Exp "else" ClosedExp
+                => (markExp (FULL_SPAN, PT.IfExp(Exp1, Exp2, ClosedExp)))
+        | "raise" ClosedExp
+                => (markExp (FULL_SPAN, PT.RaiseExp ClosedExp))
+        ;
+
+AndalsoExp
+        : OrelseExp ( "andalso" OrelseExp )*
+                => (markExp (FULL_SPAN, mkCondExp PT.AndAlsoExp (OrelseExp, SR)))
+        ;
+
+OrelseExp
+        : ConstraintExp ( "orelse" ConstraintExp )*
+                => (markExp (FULL_SPAN, mkCondExp PT.OrElseExp (ConstraintExp, SR)))
+        ;
+
+ConstraintExp
+        : AsnExp (":" Type)?
+                => (case SR
+                     of SOME ty => markExp (FULL_SPAN, PT.ConstraintExp(AsnExp, ty))
+                      | NONE => AsnExp
+                    (* end case *))
+        ;
+
+AsnExp
+        : RExp ( ":=" RExp )?
+                => (case SR
+                     of SOME rhs => markExp (FULL_SPAN, mkBinApp(RExp, Op.assign_op, rhs))
+                      | NONE => RExp
+                    (* end case *))
+        ;
+
+RExp
+        : LExp ( ROp LExp => (ROp, LExp) )*
+                => (markExp (FULL_SPAN, mkLBinExp(LExp, SR)))
+        ;
+
+ROp     : "<"   => (Op.lt_op)
+        | "<="  => (Op.lte_op)
+        | "="   => (Op.eq_op)
+        | "<>"  => (Op.neq_op)
+        | ">="  => (Op.gte_op)
+        | ">"   => (Op.gt_op)
+        ;
+
+LExp
+        : AExp (( "::" => (Op.listCons) | "@" => (Op.at_op) ) AExp => (SR, AExp) )*
+                => (markExp (FULL_SPAN, mkRBinExp(AExp, SR)))
+        ;
+
+AExp
+        : MExp ( AOp MExp => (AOp, MExp) )*
+                => (markExp (FULL_SPAN, mkLBinExp(MExp, SR)))
+        ;
+
+AOp
+        : "+"   => (Op.plus_op)
+        | "-"   => (Op.minus_op)
+        | "^"   => (Op.hat_op)
+        ;
+
+MExp
+        : ApplyExp ( MOp ApplyExp => (MOp, ApplyExp) )*
+                => (markExp (FULL_SPAN, mkLBinExp(ApplyExp, SR)))
+        ;
+
+MOp
+        : "*"   => (Op.times_op)
+        | "div" => (Op.div_op)
+        | "mod" => (Op.mod_op)
+        | "/"   => (Op.fdiv_op)
+        ;
+
+ApplyExp
+        : AtomicExp AtomicExp*
+                => (markExp (FULL_SPAN, mkApply(AtomicExp1, AtomicExp2)))
+        | "~" AtomicExp
+                => (markExp (FULL_SPAN, PT.ApplyExp(PT.IdExp([], Op.neg_op), AtomicExp)))
+        | "!" AtomicExp
+                => (markExp (FULL_SPAN, PT.ApplyExp(PT.IdExp([], Op.deref_op), AtomicExp)))
+        ;
+
+AtomicExp
+        : "let" (ValueDecl ";"?)+ "in" Exp (";" Exp)* "end"
+                => (markExp (
+                      FULL_SPAN,
+                      PT.LetExp(SR1, if null SR2 then Exp else PT.SeqExp(Exp::SR2))))
+        | "(" ")"
+                => (markExp (FULL_SPAN, PT.TupleExp[]))
+        | "(" Exp optExps ")"
+                => (markExp (FULL_SPAN, optExps Exp))
+        | "[" (Exp ("," Exp)*)? "]"
+                => (case SR
+                     of NONE => markExp (FULL_SPAN, PT.ListExp[])
+                      | SOME(e, es) => markExp (FULL_SPAN, PT.ListExp(e::es))
+                    (* end case *))
+        | UseId
+                => (markExp (FULL_SPAN, PT.IdExp UseId))
+        | OperatorId
+                => (markExp (FULL_SPAN, PT.IdExp([], OperatorId)))
+        | Literal
+                => (markExp (FULL_SPAN, PT.ConstExp Literal))
+        ;
+
+Literal
+        : INT           => (Literal.Int INT)
+        | WORD          => (Literal.Word WORD)
+        | FLOAT         => (Literal.Real FLOAT)
+        | CHAR          => (Literal.Char CHAR)
+        | STRING        => (Literal.String STRING)
+        ;
+
+optExps
+        : (* empty *)           => (fn e => e)
+        | ("," Exp)+            => (fn e => PT.TupleExp(e :: SR))
+        | (";" Exp)+            => (fn e => PT.SeqExp(e :: SR))
+        ;
+
+Pat
+        : ConstrainedPat ( "as" Pat )?
+                => (case SR
+                     of NONE => ConstrainedPat
+                      | SOME pat => markPat (FULL_SPAN, PT.AsPat(ConstrainedPat, pat))
+                    (* end case *))
+        ;
+
+ConstrainedPat
+        : ConsPat ( ":" Type )?
+                => (case SR
+                     of NONE => ConsPat
+                      | SOME ty => markPat (FULL_SPAN, PT.ConstraintPat(ConsPat, ty))
+                    (* end case *))
+        ;
+
+ConsPat
+        : ApplyPat ("::" ApplyPat => (FULL_SPAN, ApplyPat))*
+                => (markPat (FULL_SPAN, mkConsPat (ApplyPat, SR)))
+        ;
+
+ApplyPat
+        : AtomicPat
+                => (AtomicPat)
+        | UseId AtomicPat
+                => (markPat (FULL_SPAN, PT.ConPat(UseId, AtomicPat)))
+        | OperatorId AtomicPat
+                => (markPat (FULL_SPAN, PT.ConPat(([], OperatorId), AtomicPat)))
+        ;
+
+AtomicPat
+        : "(" (Pat ("," Pat)*)? ")"
+                => (case SR
+                     of NONE => markPat (FULL_SPAN, PT.TuplePat[])
+                      | SOME(p, []) => p
+                      | SOME(p, ps) => markPat (FULL_SPAN, PT.TuplePat(p::ps))
+                    (* end case *))
+        | "[" (Pat ("," Pat)*)? "]"
+                => (case SR
+                     of NONE => markPat (FULL_SPAN, PT.ListPat[])
+                      | SOME(p, ps) => markPat (FULL_SPAN, PT.ListPat(p::ps))
+                    (* end case *))
+        | UseId         => (markPat (FULL_SPAN, PT.IdPat UseId))
+        | OperatorId    => (markPat (FULL_SPAN, PT.IdPat([], OperatorId)))
+        | "_"           => (markPat (FULL_SPAN, PT.WildPat))
+        | INT           => (markPat (FULL_SPAN, PT.ConstPat(Literal.Int INT)))
+        | WORD          => (markPat (FULL_SPAN, PT.ConstPat(Literal.Word WORD)))
+        | CHAR          => (markPat (FULL_SPAN, PT.ConstPat(Literal.Char CHAR)))
+        | STRING        => (markPat (FULL_SPAN, PT.ConstPat(Literal.String STRING)))
+        ;
+
+BoundId : NAME => (NAME)
+        ;
+
+OperatorId
+        : "op" Operator => (Operator)
+        ;
+
+Operator
+        : ":="  => (Op.assign_op)
+        | "<"   => (Op.lt_op)
+        | "<="  => (Op.lte_op)
+        | "="   => (Op.eq_op)
+        | "<>"  => (Op.neq_op)
+        | ">="  => (Op.gte_op)
+        | ">"   => (Op.gt_op)
+        | "::"  => (Op.listCons)
+        | "@"   => (Op.at_op)
+        | "+"   => (Op.plus_op)
+        | "-"   => (Op.minus_op)
+        | "^"   => (Op.hat_op)
+        | "*"   => (Op.times_op)
+        | "div" => (Op.div_op)
+        | "mod" => (Op.mod_op)
+        | "/"   => (Op.fdiv_op)
+        ;
+
+UseId
+        : NAME => ([], NAME)
+        | QNAME => (QNAME)
+        ;

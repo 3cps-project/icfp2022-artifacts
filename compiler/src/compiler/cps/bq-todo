@@ -1,0 +1,20 @@
+
+Important
+ - Update analysis scope to include data structure and tuple extent analysis
+ - Patch and improve display analysis
+ - add word evaluation into interpreters
+
+
+Not as important
+
+ - Update call-web analyses to include type contexts
+    - Then we can do some monomorphization transforms
+ - We could write a module that approximates the "size" of
+   closures if we want to use that for measurements
+ - Mirror analyses for continuation stuff (and add dumping/allocation/etc to JSON)
+
+ - Patch CPS optimizations, in particular the argument expander to eliminate tuples
+    - I should be able to handle modifying the types correctly, but I might need help with this
+    - ON HOLD: fails since I tranform based on call webs, not call wbes + types.
+      I actually don't translate any types yet, and the analysis depends on types,
+      so everything breaks after the optimization pass

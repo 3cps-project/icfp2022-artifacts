@@ -1,0 +1,118 @@
+#!/usr/bin/python3
+
+import os
+import sys
+import argparse
+
+if sys.version_info[0] < 3 and sys.version_info[1] < 3:
+    raise Exception("Must be using Python 3.3")
+
+# https://stackoverflow.com/questions/5462873/control-formatting-of-the-argparse-help-argument-list
+def make_wide(formatter, w=120, h=36):
+    """Return a wider HelpFormatter, if possible."""
+    try:
+        # https://stackoverflow.com/a/5464440
+        # beware: "Only the name of this class is considered a public API."
+        kwargs = {'width': w, 'max_help_position': h}
+        formatter(None, **kwargs)
+        return lambda prog: formatter(prog, **kwargs)
+    except TypeError:
+        warnings.warn("argparse help formatter failed, falling back.")
+        return formatter
+
+parser = argparse.ArgumentParser(description='Run the test cases for the compiler. Optionally takes flags to pass onto the compiler',
+                                 formatter_class=make_wide(argparse.HelpFormatter, w=200, h=20))
+
+LOG_TIMING = 'timing'
+JSON = 'json'
+DUMP_CPS = 'dump-cps'
+DUMP_EXTENTS = 'dump-extents'
+DUMP_EXTENT_SUMMARY = 'dump-extent-summary'
+DISABLE_SIMPLE_OPT = 'disable-simple-opt'
+DUMP_ALLOCATION_SUMMARY = 'dump-allocation-summary'
+
+CHECK_ANALYSIS_RESULTS = 'check-analysis-results'
+
+flag_choices = [JSON, LOG_TIMING, DUMP_CPS, DUMP_EXTENTS, DUMP_EXTENT_SUMMARY, DISABLE_SIMPLE_OPT, DUMP_ALLOCATION_SUMMARY, CHECK_ANALYSIS_RESULTS]
+
+parser.add_argument("--file", metavar="PATH", dest='chosen_file', action='store',
+                    help="Run a specific file")
+parser.add_argument("--color", dest='color', action='store_true',
+                    help="print in color")
+parser.add_argument("--dont-show", dest='dont_show', action='store_true',
+                    help="don't show the log file after running the compiler")
+parser.add_argument("--show-stdout", dest='show_stdout', action='store_true',
+                    help="show the stdout of the compiler")
+parser.add_argument("--flags", dest='extra_flags', nargs='+', metavar='flag', choices=flag_choices, default=[],
+                    help='Flags passed onto to the compiler. Allowed values are ' + ', '.join(flag_choices))
+
+
+args = parser.parse_args()
+chosen_file = args.chosen_file
+extra_flags = args.extra_flags
+DONT_SHOW = args.dont_show
+SHOW_STDOUT = args.show_stdout
+COLOR = args.color
+
+long_examples = ["parser-comb", "safe-for-space", "knuth-bendix", "life", "mandelbrot", "smith-normal-form", "ratio-regions", "boyer", "nucleic", "mc-ray"] # examples that take too long to run the interpreter on
+
+examples = [
+    "nucleic",
+    "boyer",
+    "k-cfa",
+    "ratio-regions",
+    "mc-ray",
+    "knuth-bendix",
+    "raytracer",
+    "smith-normal-form",
+    "tsp",
+    "cps-convert",
+    "interpreter",
+    "parser-comb",
+    "life",
+    "derivative",
+    "nqueens",
+    "quicksort",
+    "mandelbrot",
+    "safe-for-space",
+    "cpstak",
+    "filter",
+    "tak",
+    "ack",
+]
+
+all_tests = []
+
+for example in examples:
+    if not (CHECK_ANALYSIS_RESULTS in extra_flags and example in long_examples):
+        this_dir = os.path.dirname(os.path.abspath(__file__)) + "/"
+        example_prefix = this_dir + "examples/"
+        program_suffix = ".sml"
+    
+        all_tests.append (example_prefix + example + program_suffix)
+
+if chosen_file != None:
+    all_tests = [chosen_file]
+
+log_suffix = ".log"
+
+compiler = "./bin/smlc"
+show_log = "cat"
+remove_log = "rm"
+always_flags = ["--log", "--disable-warnings"]
+extra_flags = list('--' + extra_flag for extra_flag in extra_flags)
+flags = always_flags + (["--color"] if COLOR else []) + extra_flags
+
+for test in all_tests:
+    test_no_suffix = os.path.splitext (test)[0]
+    route_stdout = ([] if SHOW_STDOUT else [" >/dev/null 2>&1"])
+    compiler_call = [compiler] + flags + [test] + route_stdout
+    log_call = [show_log, test_no_suffix + log_suffix]
+    remove_log_call = [remove_log, test_no_suffix + log_suffix] + [" >/dev/null 2>&1"]
+    print(test, flush=True)
+    print("======================================", flush=True)
+    os.system(" ".join(remove_log_call))
+    os.system(" ".join(compiler_call))
+    if not DONT_SHOW:
+        os.system(" ".join(log_call))
+    print("")

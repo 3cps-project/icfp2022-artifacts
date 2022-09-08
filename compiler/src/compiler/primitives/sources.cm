@@ -1,0 +1,23 @@
+(* sources.cm
+ *
+ * COPYRIGHT (c) 2021 John Reppy (http://cs.uchicago.edu/~jhr)
+ * All rights reserved.
+ *
+ * Sources file for primitive operator support.
+ *)
+
+Library
+
+  structure PrimEval
+  structure PrimOp
+
+is
+
+  $/basis.cm
+  $/smlnj-lib.cm
+
+  const-arith/sources.cm
+
+  const-arith.sml
+  prim-eval.sml
+  prim-op.sml
